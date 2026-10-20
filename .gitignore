@@ -1,0 +1,19 @@
+# dados sensíveis
+entrada/
+saida/
+cadastro/
+*.csv
+*.xlsx
+*.xls
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# empacotamento
+build/
+dist/
+*.spec

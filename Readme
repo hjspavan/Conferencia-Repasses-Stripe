@@ -1,0 +1,104 @@
+# Conferência de Repasses Stripe
+
+Aplicativo desktop em Python que consolida relatórios da Stripe (CSV ou Excel), identifica o CPF/CNPJ de cada transação, remove duplicatas, confere os valores e gera um Excel final pronto para conferência.
+
+O usuário só **arrasta as planilhas para a janela** e clica em **Gerar Excel**. Todo o processamento acontece no computador dele: nenhum dado é enviado para a internet e não é necessária chave de API.
+
+## Funcionalidades
+
+- **Leitura flexível:** aceita `.csv`, `.xlsx` e `.xls`, com vários arquivos de uma vez.
+- **Detecção automática do cabeçalho:** ignora linhas de título no topo (comum em planilhas geradas por Power Query) e procura em todas as abas.
+- **Colunas em português ou inglês:** reconhece os nomes de exportações diferentes da Stripe, com ou sem acento.
+- **CPF/CNPJ:** localiza colunas de metadados (`cpf`, `cnpj`, `tax_id`...), junta várias em uma só e formata (`123.456.789-01` / `12.345.678/0001-90`). Opcionalmente completa com uma planilha de cadastro de clientes.
+- **Máscara de CPF opcional:** `***.456.789-**`, para compartilhar o arquivo com menos exposição.
+- **Consolidação:** padroniza colunas, registra o arquivo de origem de cada linha e remove duplicatas pelo ID da transação.
+- **Conferência:** quantidade de transações, valores brutos, tarifas e líquidos por moeda, arquivo, mês e categoria, além da checagem `bruto - tarifa = líquido`.
+- **Excel final** com:
+  - **Resumo Executivo:** contadores e totais (inclui bloco separado sem linhas de `payout`).
+  - **Transações:** todas as linhas consolidadas, com filtro e cabeçalho congelado.
+  - **Divergências:** aparece só se houver linhas inconsistentes.
+
+## Instalação
+
+Requer Python 3.9 ou superior.
+
+```bash
+git clone https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git
+cd SEU_REPOSITORIO
+pip install -r requirements.txt
+```
+
+## Uso
+
+```bash
+python app.py
+```
+
+No Windows, também é possível dar dois cliques em `executar.bat`.
+
+1. Arraste os relatórios da Stripe para a **caixa 1** (ou use **Adicionar...**).
+2. Se o CPF/CNPJ não vier no relatório, arraste a planilha de clientes na **caixa 2**. Ela precisa de uma coluna de cliente (`id`, `customer_id`, `cliente` ou `email`) e outra com `cpf`, `cnpj` ou `tax_id` no nome.
+3. Clique em **GERAR EXCEL**.
+4. O arquivo é salvo na pasta `saida/` e aberto automaticamente.
+
+## Estrutura
+
+```
+.
+├── app.py             # interface (Tkinter + arrastar e soltar)
+├── motor.py           # leitura, padronização, conferência e geração do Excel
+├── executar.bat       # atalho para Windows
+└── requirements.txt
+```
+
+O `motor.py` não depende da interface e pode ser usado em scripts:
+
+```python
+import motor
+
+resultado = motor.processar(
+    arquivos_repasse=["relatorio.csv"],
+    arquivos_cadastro=[],
+    pasta_saida="saida",
+)
+print(resultado["totais"])
+```
+
+## Gerar um executável (.exe)
+
+Para entregar a quem não tem Python instalado (gere no Windows):
+
+```bash
+pip install pyinstaller
+pyinstaller --noconfirm --windowed --name ConferenciaRepasses --collect-all tkinterdnd2 app.py
+```
+
+Distribua a pasta `dist/ConferenciaRepasses` inteira, compactada em `.zip`. Na primeira execução o Windows pode exibir um alerta de "aplicativo não reconhecido", pois o executável não é assinado digitalmente.
+
+## Colunas reconhecidas
+
+Os nomes aceitos ficam no dicionário `RENOMEAR` no topo do `motor.py`. Se a sua exportação usar outros cabeçalhos, o app mostra a lista de colunas encontradas, e basta acrescentar o nome correspondente ao dicionário.
+
+| Campo final | Exemplos de cabeçalho aceitos |
+|---|---|
+| `id_transacao` | `balance_transaction_id`, `id`, `ID Transação` |
+| `bruto` | `gross`, `amount`, `Bruto`, `Valor` |
+| `tarifa` | `fee`, `fees`, `Tarifa`, `Taxa` |
+| `liquido` | `net`, `Líquido` |
+| `categoria` | `reporting_category`, `type`, `Tipo` |
+| `data_transacao` | `created`, `Data / Hora` |
+| `cpf_cnpj` | qualquer coluna com `cpf`, `cnpj` ou `tax_id` no nome |
+
+Apenas o ID da transação é obrigatório. Se faltarem as colunas de valor, o Excel é gerado sem totais e o app avisa.
+
+## Cuidados
+
+- **LGPD:** o Excel gerado contém CPF/CNPJ e dados financeiros. Restrinja o acesso à pasta `saida/` e não compartilhe os arquivos por e-mail ou chat sem necessidade.
+- **Não versione dados reais.** O `.gitignore` já exclui `entrada/`, `saida/`, `cadastro/` e arquivos de planilha.
+- **Linhas de `payout`:** exportações de histórico de saldo incluem a saída do dinheiro para o banco (valores negativos). Use o bloco "sem linhas de payout" do resumo para ver o faturamento e as tarifas reais.
+- **Linhas sem ID de transação** (totais e rodapés) são descartadas para não duplicar somas.
+
+## Tecnologias
+
+Python, pandas, openpyxl, Tkinter e tkinterdnd2.
+
