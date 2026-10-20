@@ -23,7 +23,7 @@ O usuário só **arrasta as planilhas para a janela** e clica em **Gerar Excel**
 Requer Python 3.9 ou superior.
 
 ```bash
-git clone https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git
+git clone https://github.com/hjspavan/Conferencia-Repasses-Stripe
 cd SEU_REPOSITORIO
 pip install -r requirements.txt
 ```
